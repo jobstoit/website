@@ -1,0 +1,77 @@
+# This configuration is currently only for DOCUMENTATION PURPOSES
+#
+# If/when the github.com/jobstoit/gqb project progresses this configuration will
+# be used as a migration configuration.
+# NOTE that all fields are "NOT NULL" unless specified "nullable"
+#
+
+pkg: model
+tables:
+  admins:
+    id: int primary
+    username: varchar unique
+    password: varchar
+
+  sites:
+    id: int primary
+    created_by: admins.id
+    active_since: datetime default(NOW)
+    name: varchar(50) unique
+    css_uri: varchar nullable
+    title: varchar(50) nullable
+
+  pages:
+    id: int primary
+    site_id: sites.id
+    uri_path: varchar
+    label: varchar(50)
+
+  rows:
+    id: int primary
+    page_id: pages.id
+    sequence: int
+
+  row_titles:
+    id: int primary
+    row_id: rows.id
+    sequence: int
+    context: varchar
+
+  row_texts:
+    id: int primary
+    row_id: rows.id
+    sequence: int
+    context: text
+
+  row_media:
+    id: int primary
+    row_id: rows.id
+    sequence: int
+    uri: varchar
+    type: media_type
+    alt: varchar(50) nullable
+
+  row_buttons:
+    id: int primary
+    row_id: rows.id
+    sequence: int
+    label: varchar(50)
+    uri: varchar
+
+  navigation_links:
+    id: int primary
+    site_id: sites.id
+    page_id: pages.id
+    position: nav_position
+    sequence: int
+
+enums:
+  media_type:
+    - video
+    - audio
+    - image
+
+  nav_position:
+    - header
+    - footer
+    - panel
