@@ -1,8 +1,5 @@
 -- 0001.sql TEST
 
-INSERT INTO admins (id, username, password)
-VALUES (101, 'admin', 'complexpassword');
-
 INSERT INTO sites (id , created_by, name)
 VALUES (101, 101, 'testsite');
 

@@ -40,7 +40,7 @@ func TestListSites(t *testing.T) {
 func TestCreateSite(t *testing.T) {
 	x, as := initTest(t)
 
-	id := x.CreateSite(context.Background(), "main1", 101)
+	id := x.CreateSite(context.Background(), "main1", "test@example.com")
 	as.True(id > 0)
 
 	q := `SELECT id FROM sites WHERE id = $1;`

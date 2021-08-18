@@ -1,11 +1,11 @@
-// Copyright 2021 Job Stoit. All rights reserved.
-
+// Package api contains all the API requests
+//
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"git.fuyu.moe/fuyu/router"
 	"github.com/jobstoit/website/model"
@@ -19,16 +19,22 @@ const (
 )
 
 // Append adds the api routes to the router
-func Append(rtr *router.Router, dbcs string) {
+func Append(rtr *router.Router, dbcs, oidProvider string) {
 	x := new(a)
 	x.repo = repo.New(dbcs)
+
+	oauth := newOauth(1, ``, ``, ``, ``)
+	x.oauth = oauth
+
+	rtr.GET("/login", oauth.login)
+	rtr.GET("/callback", oauth.oauthCallback)
 
 	api := rtr.Group("/api")
 	site := api.Group("/site")
 
 	site.GET("/active", x.getActiveSite)
 
-	admin := api.Group("/admin")
+	admin := api.Group("/admin", x.isAdminMiddleware)
 	adminSite := admin.Group("/site")
 
 	adminSite.GET("/:"+paramSiteID, x.getSiteByID)
@@ -43,7 +49,23 @@ func Append(rtr *router.Router, dbcs string) {
 
 // An api struct to hold the repo for all the router functions
 type a struct {
-	repo *repo.Repo
+	repo  *repo.Repo
+	oauth *oa
+}
+
+func (x a) isAdminMiddleware(f router.Handle) router.Handle {
+	return func(ctx *router.Context) error {
+		user, err := x.oauth.GetUserInfo(ctx)
+		if err != nil {
+			return ctx.NoContent(http.StatusInternalServerError)
+		}
+
+		if !strings.Contains(strings.Join(user.Roles, " "), "admin") {
+			return ctx.NoContent(http.StatusUnauthorized)
+		}
+
+		return f(ctx)
+	}
 }
 
 func (x a) getActiveSite(ctx *router.Context) error {
@@ -76,12 +98,12 @@ type adminAddSiteReq struct {
 }
 
 func (x a) adminAddSite(ctx *router.Context, reqBody adminAddSiteReq) error {
-	userID, err := x.getAdmin(ctx)
+	user, err := x.oauth.GetUserInfo(ctx)
 	if err != nil {
 		return ctx.NoContent(http.StatusUnauthorized)
 	}
 
-	x.repo.CreateSite(ctx.Request.Context(), reqBody.Name, userID)
+	x.repo.CreateSite(ctx.Request.Context(), reqBody.Name, user.Username)
 
 	return ctx.NoContent(http.StatusCreated)
 }
@@ -96,11 +118,6 @@ func (x a) adminAddPage(ctx *router.Context, reqBody adminAddPageReq) error {
 	siteID, err := strconv.Atoi(ssiteID)
 	if err != nil {
 		return ctx.NoContent(http.StatusNotFound)
-	}
-
-	_, err = x.getAdmin(ctx)
-	if err != nil {
-		return ctx.NoContent(http.StatusUnauthorized)
 	}
 
 	var res idResp
@@ -170,11 +187,4 @@ func (x a) adminDeleteRow(ctx *router.Context) error {
 	x.repo.DeleteRow(ctx.Request.Context(), rowID)
 
 	return ctx.NoContent(http.StatusOK)
-}
-
-// Helper functions
-func (x a) getAdmin(ctx *router.Context) (id int, err error) {
-	// TODO ctx.Request.Cookie("bearer-token")
-
-	return 0, fmt.Errorf("not implemented")
 }

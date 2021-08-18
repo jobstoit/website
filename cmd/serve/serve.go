@@ -11,7 +11,7 @@ import (
 func Serve(cfg *model.Config) {
 	rtr := router.New()
 
-	api.Append(rtr, cfg.DBCS)
+	api.Append(rtr, cfg.DBCS, cfg.OIDP)
 
 	rtr.Start(fmt.Sprintf(":%d", cfg.Port))
 }

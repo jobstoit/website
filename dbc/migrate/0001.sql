@@ -1,23 +1,13 @@
 -- 0001.sql
 
-CREATE TABLE admins (
-	id SERIAL PRIMARY KEY,
-	username VARCHAR NOT NULL UNIQUE,
-	password VARCHAR NOT NULL
-);
-
 CREATE TABLE sites (
 	id SERIAL PRIMARY KEY,
-	created_by INT NOT NULL,
+	created_by VARCHAR,
 	name VARCHAR(50) NOT NULL UNIQUE,
 	active_since TIMESTAMP DEFAULT NOW(),
 	css_uri VARCHAR,
 	title VARCHAR(50)
 );
-
-ALTER TABLE sites
-ADD CONSTRAINT fk_sites_created_by
-FOREIGN KEY (created_by) REFERENCES admins(id);
 
 CREATE TABLE pages (
 	id SERIAL PRIMARY KEY,

@@ -1,5 +1,3 @@
-// Copyright 2021 Job Stoit. All rights reseved
-
 package repo
 
 import (
@@ -10,7 +8,7 @@ import (
 )
 
 // CreateSite adds a new site to the repository
-func (x Repo) CreateSite(ctx context.Context, name string, createdBy int) (id int) {
+func (x Repo) CreateSite(ctx context.Context, name string, createdBy string) (id int) {
 	q := `INSERT INTO sites (name, created_by)
 		VALUES ($1, $2)
 		RETURNING id;`
