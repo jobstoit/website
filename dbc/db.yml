@@ -7,14 +7,9 @@
 
 pkg: model
 tables:
-  admins:
-    id: int primary
-    username: varchar unique
-    password: varchar
-
   sites:
     id: int primary
-    created_by: admins.id
+    created_by: varchar nullable,
     active_since: datetime default(NOW)
     name: varchar(50) unique
     css_uri: varchar nullable
@@ -61,7 +56,8 @@ tables:
   navigation_links:
     id: int primary
     site_id: sites.id
-    page_id: pages.id
+    uri: varchar
+    label: varchar(50)
     position: nav_position
     sequence: int
 

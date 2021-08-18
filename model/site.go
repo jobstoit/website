@@ -2,12 +2,15 @@ package model
 
 // Site is the model for a site construction
 type Site struct {
-	ID        int    `json:"id"`
-	CreatedBy int    `json:"created_by"`
-	Name      string `json:"name"`
-	CssURI    string `json:"css_uri"`
-	Title     string `json:"title"`
-	Pages     []Page `json:"pages"`
+	ID        int      `json:"id"`
+	CreatedBy int      `json:"created_by"`
+	Name      string   `json:"name"`
+	CssURI    string   `json:"css_uri"`
+	Title     string   `json:"title"`
+	Pages     []Page   `json:"pages"`
+	NavHeader []Button `json:"nav_header"`
+	NavFooter []Button `json:"nav_footer"`
+	NavPanel  []Button `json:"nav_panel"`
 }
 
 // Page is a site's page

@@ -84,14 +84,11 @@ CREATE TYPE nav_position AS ENUM ('header', 'footer', 'panel');
 CREATE TABLE navigation_links (
 	id SERIAL PRIMARY KEY,
 	site_id INT NOT NULL,
-	page_id INT NOT NULL,
+	uri VARCHAR NOT NULL,
+	label VARCHAR(50) NOT NULL,
 	position nav_position NOT NULL,
 	sequence INT NOT NULL
 );
-
-ALTER TABLE navigation_links
-ADD CONSTRAINT fk_navigation_links_page_id
-FOREIGN KEY (page_id) REFERENCES pages(id);
 
 ALTER TABLE navigation_links
 ADD CONSTRAINT fk_navigation_links_site_id

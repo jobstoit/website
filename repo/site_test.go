@@ -17,6 +17,7 @@ func TestGetActiveSite(t *testing.T) {
 	as.Eq("testsite", site.Name)
 	as.Eq(2, len(site.Pages))
 	as.Eq(3, len(site.Pages[0].Rows))
+	as.Eq(2, len(site.NavHeader))
 }
 
 func TestGetSiteByID(t *testing.T) {
@@ -28,13 +29,14 @@ func TestGetSiteByID(t *testing.T) {
 	as.Eq("testsite", site.Name)
 	as.Eq(2, len(site.Pages))
 	as.Eq(3, len(site.Pages[0].Rows))
+	as.Eq(2, len(site.NavHeader))
 }
 
 func TestListSites(t *testing.T) {
 	x, as := initTest(t)
 
 	sites := x.ListSites(context.Background())
-	as.Eq(1, len(sites))
+	as.Eq(3, len(sites))
 }
 
 func TestCreateSite(t *testing.T) {
@@ -45,6 +47,56 @@ func TestCreateSite(t *testing.T) {
 
 	q := `SELECT id FROM sites WHERE id = $1;`
 	as.NoError(x.db.QueryRow(q, id).Scan(new(int)))
+}
+
+func TestAddNavigationLink(t *testing.T) {
+	x, as := initTest(t)
+
+	siteID := 101
+	uri, label := "https://example.com", "example"
+	position := "header"
+
+	id := x.AddNavigationLink(context.Background(), siteID, uri, label, position)
+	as.True(id > 0)
+
+	q := `SELECT id FROM navigation_links WHERE id = $1;`
+	as.NoError(x.db.QueryRow(q, id).Scan(new(int)))
+}
+
+func TestChangeNavigationSequence(t *testing.T) {
+	x, as := initTest(t)
+
+	siteID := 103
+	position := "header"
+	newSequence := []int{103, 101, 102}
+
+	x.ChangeNavigationSequence(context.Background(), siteID, position, newSequence)
+
+	q := `SELECT id
+		FROM navigation_links
+		WHERE site_id = $1
+		AND position = $2
+		ORDER BY sequence ASC;`
+
+	rows, err := x.db.Query(q, siteID, position)
+	if err != nil {
+		t.Logf("error quering navlinks sequence: %v", err)
+	}
+	defer rows.Close() // nolint: errcheck
+
+	var seqs []int
+	var seq int
+	for rows.Next() {
+		if err := rows.Scan(&seq); err != nil {
+			t.Logf("error scanning navlinks sequence: %v", err)
+		}
+		seqs = append(seqs, seq)
+	}
+
+	as.Eq(len(newSequence), len(seqs))
+	as.Eq(newSequence[0], seqs[0])
+	as.Eq(newSequence[1], seqs[1])
+	as.Eq(newSequence[2], seqs[2])
 }
 
 func TestCreatePage(t *testing.T) {

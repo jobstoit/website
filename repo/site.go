@@ -20,6 +20,73 @@ func (x Repo) CreateSite(ctx context.Context, name string, createdBy string) (id
 	return
 }
 
+// AddNavigationLink adds a new navigation link to the repository for the given site
+func (x Repo) AddNavigationLink(ctx context.Context, siteID int, uri, label, position string) (id int) {
+	tx, err := x.db.BeginTx(ctx, nil)
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Rollback() // nolint: errcheck
+
+	q := `SELECT sequence
+		FROM navigation_links
+		WHERE site_id = $1
+		AND position = $2
+		ORDER BY sequence DESC
+		LIMIT 1;`
+
+	var seq int
+	if err := tx.QueryRow(q, siteID, position).Scan(&seq); err != nil && err != sql.ErrNoRows {
+		panic(err)
+	}
+	seq += 1
+
+	q = `INSERT INTO navigation_links (site_id, uri, label, position, sequence)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id;`
+
+	if err := tx.QueryRow(q, siteID, uri, label, position, seq).Scan(&id); err != nil {
+		panic(err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		panic(err)
+	}
+
+	return
+}
+
+// ChangeNavigationSequence chages the sequence of the given navigation
+func (x Repo) ChangeNavigationSequence(ctx context.Context, siteID int, postition string, navIDs []int) {
+	tx, err := x.db.BeginTx(ctx, nil)
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Rollback() // nolint: errcheck
+
+	q := `UPDATE navigation_links
+		SET sequence = $4
+		WHERE site_id = $1
+		AND position = $2
+		AND id = $3;`
+
+	stmt, err := tx.Prepare(q)
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close() // nolint: errcheck
+
+	for seq, id := range navIDs {
+		if _, err := stmt.Exec(siteID, postition, id, seq+1); err != nil {
+			panic(err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		panic(err)
+	}
+}
+
 // CreatePage adds a page to the site into the repostirory
 func (x Repo) CreatePage(ctx context.Context, siteID int, uri, label string) (id int) {
 	q := `INSERT INTO pages (site_id, uri_path, label)
@@ -282,9 +349,37 @@ func (x Repo) getSiteQuery(ctx context.Context, q string, args ...interface{}) (
 	nullTitle.Scan(&s.Title)  // nolint: errcheck
 
 	s.Pages = getPagesBySiteID(tx, s.ID)
+	s.NavHeader = getNavBySiteID(tx, s.ID, `header`)
+	s.NavFooter = getNavBySiteID(tx, s.ID, `footer`)
+	s.NavPanel = getNavBySiteID(tx, s.ID, `panel`)
 
 	if err := tx.Commit(); err != nil {
 		panic(err)
+	}
+
+	return
+}
+
+func getNavBySiteID(tx querier, siteID int, position string) (btns []model.Button) {
+	q := `SELECT uri, label
+		FROM navigation_links
+		WHERE site_id = $1
+		AND position = $2;`
+
+	rows, err := tx.Query(q, siteID, position)
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close() // nolint: errcheck
+
+	var btn model.Button
+	for rows.Next() {
+		if err := rows.Scan(&btn.URI, &btn.Label); err != nil {
+			panic(err)
+		}
+
+		btns = append(btns, btn)
+		btn = model.Button{}
 	}
 
 	return

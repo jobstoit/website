@@ -1,7 +1,11 @@
 -- 0001.sql TEST
 
-INSERT INTO sites (id , created_by, name)
-VALUES (101, 101, 'testsite');
+INSERT INTO sites (id, name)
+VALUES (101, 'testsite'), (102, 'testsite2'), (103, 'testsite3');
+
+INSERT INTO navigation_links (id, site_id, uri, label, position, sequence)
+VALUES (104, 101, '/test1', 'test1', 'header', 1), (105, 101, '/test1', 'test1', 'header', 1),
+(101, 103, '/test1', 'test1', 'header', 1), (102, 103, '/test2', 'test2', 'header', 1), (103, 103, '/test3', 'test3', 'header', 1);
 
 INSERT INTO pages (id, site_id, uri_path, label)
 VALUES (101, 101, '/home', 'Home'), (102, 101, '/createrows', 'Create');

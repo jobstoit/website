@@ -19,11 +19,11 @@ const (
 )
 
 // Append adds the api routes to the router
-func Append(rtr *router.Router, dbcs, oidProvider string) {
+func Append(rtr *router.Router, cfg model.Config) {
 	x := new(a)
-	x.repo = repo.New(dbcs)
+	x.repo = repo.New(cfg.DBCS)
 
-	oauth := newOauth(1, ``, ``, ``, ``)
+	oauth := newOauth(cfg.Port, cfg.OID.StateString, cfg.OID.ClientID, cfg.OID.ClientSecret, cfg.OID.URL)
 	x.oauth = oauth
 
 	rtr.GET("/login", oauth.login)
@@ -40,6 +40,8 @@ func Append(rtr *router.Router, dbcs, oidProvider string) {
 	adminSite.GET("/:"+paramSiteID, x.getSiteByID)
 	adminSite.GET("/list", x.adminListSites)
 	adminSite.POST("/create", x.adminAddSite)
+	adminSite.POST("/:"+paramPageID+"/navigation", x.adminAddNavigation)
+	adminSite.PUT("/:"+paramPageID+"/navigation", x.adminUpdateNavigationSequence)
 	adminSite.POST("/:"+paramSiteID+"/page", x.adminAddPage)
 	adminSite.POST("/page/:"+paramPageID+"/row", x.adminAddRow)
 	adminSite.PUT("/page/:"+paramPageID+"/row", x.adminUpdateRowSequence)
@@ -82,6 +84,40 @@ func (x a) getSiteByID(ctx *router.Context) error {
 	s := x.repo.GetSiteByID(ctx.Request.Context(), id)
 
 	return ctx.JSON(http.StatusOK, s)
+}
+
+type adminAddNavigationRequest struct {
+	URI      string `json:"uri"`
+	Label    string `json:"label"`
+	Position string `json:"position"`
+}
+
+func (x a) adminAddNavigation(ctx *router.Context, reqBody adminAddNavigationRequest) error {
+	siteID, err := strconv.Atoi(ctx.Param(paramSiteID))
+	if err != nil {
+		return ctx.NoContent(http.StatusNotFound)
+	}
+
+	var res idResp
+	res.ID = x.repo.AddNavigationLink(ctx.Request.Context(), siteID, reqBody.URI, reqBody.Label, reqBody.Position)
+
+	return ctx.JSON(http.StatusCreated, res)
+}
+
+type adminUpdateNavigationSequenceRequest struct {
+	Position string `json:"position"`
+	IDs      []int  `json:"ids"`
+}
+
+func (x a) adminUpdateNavigationSequence(ctx *router.Context, reqBody adminUpdateNavigationSequenceRequest) error {
+	siteID, err := strconv.Atoi(ctx.Param(paramSiteID))
+	if err != nil {
+		return ctx.NoContent(http.StatusNotFound)
+	}
+
+	x.repo.ChangeNavigationSequence(ctx.Request.Context(), siteID, reqBody.Position, reqBody.IDs)
+
+	return ctx.NoContent(http.StatusOK)
 }
 
 func (x a) adminListSites(ctx *router.Context) error {
