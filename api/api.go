@@ -19,7 +19,7 @@ const (
 )
 
 // Append adds the api routes to the router
-func Append(rtr *router.Router, cfg model.Config) {
+func Append(rtr *router.Router, cfg *model.Config) {
 	x := new(a)
 	x.repo = repo.New(cfg.DBCS)
 

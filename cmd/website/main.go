@@ -24,19 +24,22 @@ func main() {
 func readConfig() *model.Config {
 	x := new(model.Config)
 
-	f := flag.String(`c`, ``, `configuration file`)
+	defaultPath := `/etc/website/config.yaml`
+	f := flag.String(`c`, defaultPath, `configuration file`)
 	if !flag.Parsed() {
 		flag.Parse()
 	}
 
 	if *f != `` {
 		fb, err := ioutil.ReadFile(*f)
-		if err != nil {
+		if err != nil && *f != defaultPath {
 			log.Fatalf("couldn't find file: %s", *f)
 		}
 
-		if err := yaml.Unmarshal(fb, x); err != nil {
-			log.Fatalf("error in given configuraion: %v", err)
+		if len(fb) > 0 {
+			if err := yaml.Unmarshal(fb, x); err != nil {
+				log.Fatalf("error in given configuraion: %v", err)
+			}
 		}
 	}
 

@@ -1,0 +1,7 @@
+port: 8080
+dbcs: postgres://user:password@localhost:5432/dbname?sslmode=disable
+open_id:
+  url: https://auth.example.com
+  client_id: yourClientID
+  client_secret: yourClientSecret
+  statestring: somerandomsetofcaracters

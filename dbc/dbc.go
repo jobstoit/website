@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strconv"
@@ -35,7 +36,7 @@ func OpenTest() *sql.DB {
 func open(cs string) *sql.DB {
 	db, err := sql.Open(`postgres`, cs)
 	if err != nil {
-		panic(err)
+		log.Fatalf("error connecting to the database: %v", err)
 	}
 
 	migrate(db, `migrate`)
