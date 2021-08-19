@@ -3,11 +3,13 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"git.fuyu.moe/fuyu/router"
+	"github.com/go-playground/validator/v10"
 	"github.com/jobstoit/website/model"
 	"github.com/jobstoit/website/repo"
 )
@@ -22,6 +24,9 @@ const (
 func Append(rtr *router.Router, cfg *model.Config) {
 	x := new(a)
 	x.repo = repo.New(cfg.DBCS)
+	x.validate = validator.New()
+
+	rtr.Reader = x.reader
 
 	oauth := newOauth(cfg.Port, cfg.OID.StateString, cfg.OID.ClientID, cfg.OID.ClientSecret, cfg.OID.URL)
 	x.oauth = oauth
@@ -51,8 +56,9 @@ func Append(rtr *router.Router, cfg *model.Config) {
 
 // An api struct to hold the repo for all the router functions
 type a struct {
-	repo  *repo.Repo
-	oauth *oa
+	repo     *repo.Repo
+	oauth    *oa
+	validate *validator.Validate
 }
 
 func (x a) isAdminMiddleware(f router.Handle) router.Handle {
@@ -87,9 +93,9 @@ func (x a) getSiteByID(ctx *router.Context) error {
 }
 
 type adminAddNavigationRequest struct {
-	URI      string `json:"uri"`
-	Label    string `json:"label"`
-	Position string `json:"position"`
+	URI      string `json:"uri" validate:"required,uri"`
+	Label    string `json:"label" validate:"required"`
+	Position string `json:"position" validate:"required"`
 }
 
 func (x a) adminAddNavigation(ctx *router.Context, reqBody adminAddNavigationRequest) error {
@@ -105,8 +111,8 @@ func (x a) adminAddNavigation(ctx *router.Context, reqBody adminAddNavigationReq
 }
 
 type adminUpdateNavigationSequenceRequest struct {
-	Position string `json:"position"`
-	IDs      []int  `json:"ids"`
+	Position string `json:"position" validate:"required"`
+	IDs      []int  `json:"ids" validate:"required"`
 }
 
 func (x a) adminUpdateNavigationSequence(ctx *router.Context, reqBody adminUpdateNavigationSequenceRequest) error {
@@ -130,7 +136,7 @@ type idResp struct {
 }
 
 type adminAddSiteReq struct {
-	Name string `json:"name"`
+	Name string `json:"name" validate:"required"`
 }
 
 func (x a) adminAddSite(ctx *router.Context, reqBody adminAddSiteReq) error {
@@ -145,8 +151,8 @@ func (x a) adminAddSite(ctx *router.Context, reqBody adminAddSiteReq) error {
 }
 
 type adminAddPageReq struct {
-	URI   string `json:"uri"`
-	Label string `json:"label"`
+	URI   string `json:"uri" validate:"required,uri"`
+	Label string `json:"label" validate:"required"`
 }
 
 func (x a) adminAddPage(ctx *router.Context, reqBody adminAddPageReq) error {
@@ -163,10 +169,10 @@ func (x a) adminAddPage(ctx *router.Context, reqBody adminAddPageReq) error {
 }
 
 type adminAddRowReq struct {
-	Titles  []string       `json:"titles"`
-	Texts   []string       `json:"texts"`
-	Media   []model.Medium `json:"media"`
-	Buttons []model.Button `json:"buttons"`
+	Titles  []string       `json:"titles" validate:"required"`
+	Texts   []string       `json:"texts" validate:"required"`
+	Media   []model.Medium `json:"media" validate:"required"`
+	Buttons []model.Button `json:"buttons" validate:"required"`
 }
 
 func (x a) adminAddRow(ctx *router.Context, reqBody adminAddRowReq) error {
@@ -182,7 +188,7 @@ func (x a) adminAddRow(ctx *router.Context, reqBody adminAddRowReq) error {
 }
 
 type adminUpdateRowSequenceReq struct {
-	RowIDs []int `json:"row_ids"`
+	RowIDs []int `json:"row_ids" validate:"required"`
 }
 
 func (x a) adminUpdateRowSequence(ctx *router.Context, reqBody adminUpdateRowSequenceReq) error {
@@ -197,10 +203,10 @@ func (x a) adminUpdateRowSequence(ctx *router.Context, reqBody adminUpdateRowSeq
 }
 
 type adminUpdateRowReq struct {
-	Titles  []string       `json:"titles"`
-	Texts   []string       `json:"texts"`
-	Media   []model.Medium `json:"media"`
-	Buttons []model.Button `json:"buttons"`
+	Titles  []string       `json:"titles" validate:"required"`
+	Texts   []string       `json:"texts" validate:"required"`
+	Media   []model.Medium `json:"media" validate:"required"`
+	Buttons []model.Button `json:"buttons" validate:"required"`
 }
 
 func (x a) adminUpdateRow(ctx *router.Context, reqBody adminUpdateRowReq) error {
@@ -223,4 +229,16 @@ func (x a) adminDeleteRow(ctx *router.Context) error {
 	x.repo.DeleteRow(ctx.Request.Context(), rowID)
 
 	return ctx.NoContent(http.StatusOK)
+}
+
+func (x a) reader(ctx *router.Context, dst interface{}) (bool, error) {
+	if err := json.NewDecoder(ctx.Request.Body).Decode(dst); err != nil {
+		return false, ctx.StatusText(http.StatusBadRequest)
+	}
+
+	if err := x.validate.Struct(dst); err != nil {
+		return false, ctx.StatusText(http.StatusUnprocessableEntity)
+	}
+
+	return true, nil
 }
