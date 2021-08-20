@@ -1,0 +1,19 @@
+kind: pipeline
+name: default
+
+steps:
+- name: test
+  image: golang
+  environment:
+    TEST_DB_CONNECTION_STRING: postgres://tester:SuperComplexPassword@db:5432/test?sslmode=disable
+  commands:
+  - go mod tidy
+  - go test ./...
+
+services:
+- name: db
+  image: postgres:latest
+  environment:
+    POSTGRES_USER: tester
+    POSTGRES_PASSWORD: SuperComplexPassword
+    POSTGRES_DB: test

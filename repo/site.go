@@ -101,7 +101,7 @@ func (x Repo) CreatePage(ctx context.Context, siteID int, uri, label string) (id
 }
 
 // CreateRow adds a new row to the given page
-func (x Repo) CreateRow(ctx context.Context, pageID int, titles, texts []string, media []model.Medium, btns []model.Button) (id int) {
+func (x Repo) CreateRow(ctx context.Context, pageID int, style string, titles, texts []string, media []model.Medium, btns []model.Button) (id int) {
 	tx, err := x.db.BeginTx(ctx, nil)
 	if err != nil {
 		panic(err)
@@ -119,11 +119,11 @@ func (x Repo) CreateRow(ctx context.Context, pageID int, titles, texts []string,
 	}
 	sequence += 1
 
-	q := `INSERT INTO rows (page_id, sequence)
-		VALUES ($1, $2)
+	q := `INSERT INTO rows (page_id, sequence, style)
+		VALUES ($1, $2, $3)
 		RETURNING id;`
 
-	if err := tx.QueryRowContext(ctx, q, pageID, sequence).Scan(&id); err != nil {
+	if err := tx.QueryRowContext(ctx, q, pageID, sequence, style).Scan(&id); err != nil {
 		panic(err)
 	}
 
@@ -231,12 +231,20 @@ func (x Repo) ChangeRowSequence(ctx context.Context, pageID int, rowIDs []int) {
 }
 
 // UpdateRow deletes previous attributes of the row and inserts the new given ones
-func (x Repo) UpdateRow(ctx context.Context, rowID int, titles, texts []string, media []model.Medium, btns []model.Button) {
+func (x Repo) UpdateRow(ctx context.Context, rowID int, style string, titles, texts []string, media []model.Medium, btns []model.Button) {
 	tx, err := x.db.BeginTx(ctx, nil)
 	if err != nil {
 		panic(err)
 	}
 	defer tx.Rollback() // nolint: errcheck
+
+	q := `UPDATE rows
+		SET style = $2
+		WHERE id = $1;`
+
+	if _, err := tx.Exec(q, rowID, style); err != nil {
+		panic(err)
+	}
 
 	deleteRowAttributes(tx, rowID)
 	insertRowTitles(tx, rowID, titles)
@@ -419,7 +427,7 @@ func getPagesBySiteID(tx querier, siteID int) (pgs []model.Page) {
 
 func getRowsByPageID(tx querier, pageID int) (rws []model.Row) {
 	q := `DECLARE row_cursor CURSOR FOR
-		SELECT id
+		SELECT id, style
 		FROM rows
 		WHERE page_id = $1
 		ORDER BY sequence ASC;`
@@ -434,7 +442,7 @@ func getRowsByPageID(tx querier, pageID int) (rws []model.Row) {
 	q = `FETCH NEXT FROM row_cursor;`
 	var rw model.Row
 	for {
-		if err := tx.QueryRow(q).Scan(&rw.ID); err != nil {
+		if err := tx.QueryRow(q).Scan(&rw.ID, &rw.Style); err != nil {
 			if err == sql.ErrNoRows {
 				break
 			}

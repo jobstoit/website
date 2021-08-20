@@ -45,6 +45,10 @@ func open(cs string) *sql.DB {
 }
 
 func migrate(db *sql.DB, folder string) {
+	if db == nil {
+		return
+	}
+
 	tx, err := db.Begin()
 	if err != nil {
 		panic(err)

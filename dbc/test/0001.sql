@@ -10,8 +10,8 @@ VALUES (104, 101, '/test1', 'test1', 'header', 1), (105, 101, '/test1', 'test1',
 INSERT INTO pages (id, site_id, uri_path, label)
 VALUES (101, 101, '/home', 'Home'), (102, 101, '/createrows', 'Create');
 
-INSERT INTO rows (id, sequence, page_id)
-VALUES (101, 1, 101), (102, 2, 101), (103, 3, 101), (104, 1, 102), (105, 1, 102);
+INSERT INTO rows (id, sequence, page_id, style)
+VALUES (101, 1, 101, 'hero'), (102, 2, 101, 'c1'), (103, 3, 101, 'c1'), (104, 1, 102, 'c1'), (105, 1, 102, 'c1');
 
 INSERT INTO row_titles (row_id, sequence, context)
 VALUES (101, 1, 'test1'), (101, 2, 'test2'), (102, 1, 'test3'), (104, 1, 'deletable row');
@@ -20,3 +20,6 @@ INSERT INTO row_texts (row_id, sequence, context)
 VALUES (101, 1, 'this is just a test text'), 
 	(101, 2, 'and another one'),
 	(103, 1, 'this is yet another text field');
+
+INSERT INTO users (username, password_hash)
+VALUES ('test1', '$2a$10$ncEfg72uZcb2lAN7Uk0WGOW6AJK0/0SW2zX3IuzauwObma9mSig2i'), ('test2', '$2a$10$ncEfg72uZcb2lAN7Uk0WGOW6AJK0/0SW2zX3IuzauwObma9mSig2i');

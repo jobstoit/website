@@ -61,6 +61,18 @@ tables:
     position: nav_position
     sequence: int
 
+  users:
+    id: int primary
+    username: varchar unique
+    password_hash: varchar
+
+  sessions:
+    id: int primary
+    user_id: users.id
+    token: varchar unique
+    created_at: timestamp default(NOW())
+    expires_at: timesamp
+
 enums:
   media_type:
     - video

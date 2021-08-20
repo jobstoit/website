@@ -22,17 +22,11 @@ const (
 
 // Append adds the api routes to the router
 func Append(rtr *router.Router, cfg *model.Config) {
-	x := new(a)
-	x.repo = repo.New(cfg.DBCS)
-	x.validate = validator.New()
-
+	x := newAPI(cfg)
 	rtr.Reader = x.reader
 
-	oauth := newOauth(cfg.Port, cfg.OID.StateString, cfg.OID.ClientID, cfg.OID.ClientSecret, cfg.OID.URL)
-	x.oauth = oauth
-
-	rtr.GET("/login", oauth.login)
-	rtr.GET("/callback", oauth.oauthCallback)
+	rtr.GET("/oauth/login", x.oauth.login)
+	rtr.GET("/oauth/callback", x.oauth.oauthCallback)
 
 	api := rtr.Group("/api")
 	site := api.Group("/site")
@@ -59,6 +53,15 @@ type a struct {
 	repo     *repo.Repo
 	oauth    *oa
 	validate *validator.Validate
+}
+
+func newAPI(cfg *model.Config) *a {
+	x := new(a)
+	x.repo = repo.New(cfg.DBCS, cfg.SigningKey)
+	x.validate = validator.New()
+	x.oauth = newOauth(cfg.Port, cfg.OID.StateString, cfg.OID.ClientID, cfg.OID.ClientSecret, cfg.OID.URL)
+
+	return x
 }
 
 func (x a) isAdminMiddleware(f router.Handle) router.Handle {
@@ -169,6 +172,7 @@ func (x a) adminAddPage(ctx *router.Context, reqBody adminAddPageReq) error {
 }
 
 type adminAddRowReq struct {
+	Style   string         `json:"style" validate:"required"`
 	Titles  []string       `json:"titles" validate:"required"`
 	Texts   []string       `json:"texts" validate:"required"`
 	Media   []model.Medium `json:"media" validate:"required"`
@@ -182,7 +186,7 @@ func (x a) adminAddRow(ctx *router.Context, reqBody adminAddRowReq) error {
 	}
 
 	var res idResp
-	res.ID = x.repo.CreateRow(ctx.Request.Context(), pageID, reqBody.Titles, reqBody.Texts, reqBody.Media, reqBody.Buttons)
+	res.ID = x.repo.CreateRow(ctx.Request.Context(), pageID, reqBody.Style, reqBody.Titles, reqBody.Texts, reqBody.Media, reqBody.Buttons)
 
 	return ctx.JSON(http.StatusCreated, res)
 }
@@ -203,6 +207,7 @@ func (x a) adminUpdateRowSequence(ctx *router.Context, reqBody adminUpdateRowSeq
 }
 
 type adminUpdateRowReq struct {
+	Style   string         `json:"style" validate:"required"`
 	Titles  []string       `json:"titles" validate:"required"`
 	Texts   []string       `json:"texts" validate:"required"`
 	Media   []model.Medium `json:"media" validate:"required"`
@@ -215,7 +220,7 @@ func (x a) adminUpdateRow(ctx *router.Context, reqBody adminUpdateRowReq) error 
 		return ctx.NoContent(http.StatusNotFound)
 	}
 
-	x.repo.UpdateRow(ctx.Request.Context(), rowID, reqBody.Titles, reqBody.Texts, reqBody.Media, reqBody.Buttons)
+	x.repo.UpdateRow(ctx.Request.Context(), rowID, reqBody.Style, reqBody.Titles, reqBody.Texts, reqBody.Media, reqBody.Buttons)
 
 	return ctx.NoContent(http.StatusOK)
 }

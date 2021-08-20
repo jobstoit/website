@@ -1,5 +1,6 @@
 port: 8080
 dbcs: postgres://user:password@localhost:5432/dbname?sslmode=disable
+signing_key: complexKey
 open_id:
   url: https://auth.example.com
   client_id: yourClientID

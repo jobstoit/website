@@ -2,6 +2,7 @@ package serve
 
 import (
 	"fmt"
+	"log"
 
 	"git.fuyu.moe/fuyu/router"
 	"github.com/jobstoit/website/api"
@@ -10,6 +11,12 @@ import (
 
 func Serve(cfg *model.Config) {
 	rtr := router.New()
+
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	api.Append(rtr, cfg)
 

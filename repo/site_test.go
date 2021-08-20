@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"git.fuyu.moe/Fuyu/assert"
-	"github.com/jobstoit/website/dbc"
 	"github.com/jobstoit/website/model"
 )
 
@@ -113,6 +112,7 @@ func TestCreateRow(t *testing.T) {
 	x, as := initTest(t)
 
 	pageID := 102
+	style := `c1`
 	titles := []string{"uno", "dos"}
 	texts := []string{"a fantastic application and know an read more about it here",
 		"bla bla bla some lorum ipsom to demosntrate this "}
@@ -133,7 +133,7 @@ func TestCreateRow(t *testing.T) {
 		},
 	}
 
-	id := x.CreateRow(context.Background(), pageID, titles, texts, media, buttons)
+	id := x.CreateRow(context.Background(), pageID, style, titles, texts, media, buttons)
 
 	q := `SELECT id FROM rows WHERE id = $1;`
 	as.NoError(x.db.QueryRow(q, id).Scan(new(int)))
@@ -179,6 +179,7 @@ func TestUpdateRow(t *testing.T) {
 	x, as := initTest(t)
 
 	rowID := 105
+	style := `hero`
 	titles := []string{"Websites"}
 	texts := []string{
 		"a fantastic application and know an read more about it here",
@@ -193,7 +194,7 @@ func TestUpdateRow(t *testing.T) {
 		},
 	}
 
-	x.UpdateRow(context.Background(), rowID, titles, texts, media, buttons)
+	x.UpdateRow(context.Background(), rowID, style, titles, texts, media, buttons)
 
 	q := `SELECT uri, label FROM row_buttons WHERE row_id = $1;`
 	var uri, label string
@@ -233,8 +234,11 @@ func TestDeleteRow(t *testing.T) {
 }
 
 func initTest(t *testing.T) (*Repo, assert.Assert) {
-	repo := new(Repo)
-	repo.db = dbc.OpenTest()
+	repo := NewTest()
+	if repo.db == nil {
+		t.Error("no database connection")
+		t.Fail()
+	}
 	ass := assert.New(t)
 	return repo, ass
 }

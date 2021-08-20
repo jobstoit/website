@@ -24,7 +24,7 @@ type Page struct {
 // Row contains the row information
 type Row struct {
 	ID      int      `json:"id"`
-	Style   int      `json:"style"`
+	Style   string   `json:"style"`
 	Titles  []string `json:"titles"`
 	Texts   []string `json:"texts"`
 	Media   []Medium `json:"media"`
